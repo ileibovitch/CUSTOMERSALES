@@ -53,7 +53,7 @@ public class CustomerController {
     }
     
     @PostMapping("/addCustomer/{id}/{name}")
-    public Customer unblockCustomer(@PathVariable Long id, @PathVariable String name) {
+    public Customer addCustomer(@PathVariable Long id, @PathVariable String name) {
     	Customer customer = new Customer();
     	customer.setcustomerId(id);
     	customer.setName(name);
