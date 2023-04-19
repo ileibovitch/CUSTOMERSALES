@@ -29,7 +29,7 @@ public class CustomerController {
         return customerService.getAllCustomers();
     }
     
-    @GetMapping("/{id}/get")
+    @GetMapping("/{id}")
     public ResponseEntity<Object> getCustomersById(@PathVariable Long id) {
     	try {
     		Customer customer =  customerService.getCustomerById(id);
@@ -42,7 +42,7 @@ public class CustomerController {
     	}
     }
 
-    @GetMapping("/{id}/block")
+    @PostMapping("/{id}/block")
     public Customer blockCustomer(@PathVariable Long id) {
         return customerService.blockCustomer(id);
     }
