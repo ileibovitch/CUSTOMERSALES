@@ -42,12 +42,12 @@ public class CustomerController {
     	}
     }
 
-    @PostMapping("/{id}/block")
+    @PostMapping("/block/{id}")
     public Customer blockCustomer(@PathVariable Long id) {
         return customerService.blockCustomer(id);
     }
 
-    @PostMapping("/{id}/unblock")
+    @PostMapping("/unblock/{id}")
     public Customer unblockCustomer(@PathVariable Long id) {
         return customerService.unblockCustomer(id);
     }
@@ -63,7 +63,7 @@ public class CustomerController {
         return customer ;
     }
     
-    @PostMapping("/{id}/addProposal")
+    @PostMapping("/addProposal/{id}")
     public ResponseEntity<String> addProposal(@PathVariable Long id) {
     	try {
     		customerService.addProposal(id);
@@ -76,7 +76,7 @@ public class CustomerController {
     	}
     }
     
-    @PostMapping("/{id}/removeProposal")
+    @PostMapping("/removeProposal/{id}")
     public ResponseEntity<String> removeProposal(@PathVariable Long id) {
     	try {
     		customerService.removeProposal(id);

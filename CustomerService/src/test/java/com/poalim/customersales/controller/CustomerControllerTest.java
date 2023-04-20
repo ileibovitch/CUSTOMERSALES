@@ -1,8 +1,11 @@
 package com.poalim.customersales.controller;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -29,7 +32,8 @@ public class CustomerControllerTest {
     @MockBean
     private CustomerRepository customerRepository;
     
-    
+    @MockBean
+    Map<Long, Customer> customerMap;
     
     
 	 @Test
@@ -53,5 +57,7 @@ public class CustomerControllerTest {
         Assertions.assertEquals(id, customer.getCustomerId());
         Assertions.assertEquals(name, customer.getName());
     }
+	 
+	
 
 }

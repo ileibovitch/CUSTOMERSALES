@@ -20,12 +20,12 @@ public class CustomerService{
 	
 	private final CustomerRepository customerRepository;
 	private static final Logger logger = LogManager.getLogger(CustomerService.class);
-	@Autowired 
-	Map<Long, Customer> customerMap;
+	private final Map<Long, Customer> customerMap;
 	
     @Autowired
-    public CustomerService(CustomerRepository customerRepository) {
+    public CustomerService(CustomerRepository customerRepository, Map<Long, Customer> customerMap) {
         this.customerRepository = customerRepository;
+        this.customerMap = customerMap;
     }
     
     public Customer addCustomer(Customer customer) {
