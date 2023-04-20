@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.poalim.customersales.service.ProposalService;
+
+import reactor.core.publisher.Mono;
+
 import com.poalim.customersales.entities.Proposal;
 import com.poalim.customersales.entities.ProposalStatus;
 
@@ -29,21 +32,23 @@ public class ProposalController {
     }
 
     @PostMapping
-    public ResponseEntity<Proposal> createProposal(@RequestBody ProposalRequest proposalRequest) {
+    public Mono<ResponseEntity<Proposal>> createProposal(@RequestBody ProposalRequest proposalRequest) {
         Proposal proposal = new Proposal();
         proposal.setCustomerId(proposalRequest.getCustomerId());
         proposal.setCustomerName(proposalRequest.getCustomerName());
         proposal.setCampaignId(proposalRequest.getCampaignId());
         proposal.setAmmount(proposalRequest.getAmmount());
 
-        Proposal createdProposal = proposalService.createProposal(proposal.getCustomerId(), proposal);
-        if (createdProposal.getStatus() == ProposalStatus.REJECTED) {
-            // If proposal is rejected, return an appropriate response
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(createdProposal);
-        } else {
-            // If proposal is approved, return a success response
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdProposal);
-        }
+        Mono<Proposal> createdProposal = proposalService.createProposal(proposal.getCustomerId(), proposal);
+        return createdProposal.map(proposalResult -> {
+            if (proposalResult.getStatus() == ProposalStatus.REJECTED) {
+                // If proposal is rejected, return an appropriate response
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(proposalResult);
+            } else {
+                // If proposal is approved, return a success response
+                return ResponseEntity.status(HttpStatus.CREATED).body(proposalResult);
+            }
+        });
     }
 
     @GetMapping("/{proposalId}")

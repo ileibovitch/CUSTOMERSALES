@@ -1,7 +1,7 @@
 package com.poalim.customersales.entities;
 
 public enum ProposalStatus {
-	PENDDING,
+	PENDING,
 	APPROVED,
 	REJECTED,
 	PURCHASED

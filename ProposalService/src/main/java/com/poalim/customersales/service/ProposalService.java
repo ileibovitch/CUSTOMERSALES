@@ -28,6 +28,9 @@ public class ProposalService {
 	@Value("${customerserver.url}")
 	private String customerServerURL;
 	
+	@Value("${customer.maxProposals}")
+	private int maxProposals;
+	
 	private ProposalRepository proposalRepository;
     
 	private static final Logger logger = LogManager.getLogger(ProposalService.class);
@@ -37,71 +40,71 @@ public class ProposalService {
         this.proposalRepository = proposalRepository;
     }
 
-    public Proposal createProposal(Long customerId, Proposal proposal) {
-    	String retrieveUrl = customerServerURL + customerId;
-    	logger.info("createProposal - fetching customer id {0}.", customerId);
-    	Mono<Customer> monoCust = webClient.get()
-    								.uri(retrieveUrl)
-							        .retrieve()
-							        .bodyToMono(Customer.class);
-							        
-        monoCust.subscribe(
-        		customer -> {
-        			logger.info("createProposal - customer {0} was retrieved", customer.getName());
-        			// Check if customer has exceeded the maximum number of proposals for the day
-        	        if (customer.getProposalsPerDay() >= 5) {
-        	        	logger.error("createProposal - customer {0} has already 5 proposals", customer.getName());
-        	        	proposal.setStatus(ProposalStatus.REJECTED);
-        	        	proposal.setErrorMsg("Customer already made 5 proposals today");
-        	        } else if (customer.isBlocked()) {
-        	        	// Check if customer is blocked
-        	        	logger.error("createProposal - customer {0} is blocked", customer.getName());
-    	            	proposal.setStatus(ProposalStatus.REJECTED);
-    	            	proposal.setErrorMsg("Customer is blocked and not allowed to make proposals");
-    	            	
-    	            } else {
-    	            	//otherwise the proposal approved
-    	            	logger.info("createProposal - customer {0} is ok to make a proposal", customer.getName());
-    	                String addUrl = customerServerURL + "/addProposal/" + customerId;
-    	                webClient.post()
-							.uri(addUrl)
-							.retrieve()
-							.bodyToMono(String.class)
-							.subscribe(
-									resposnse -> {
-										logger.info("createProposal - customer {0} made a proposal", customer.getName());
-									},
-									error -> {
-										logger.error("createProposal - something went wrong proposal rejected. {0}", error.getMessage());
-										proposal.setStatus(ProposalStatus.REJECTED);
-				    	            	proposal.setErrorMsg("something went wrong proposal rejected");
-									}
-							);
-    	                
-    	            }
-        	    },
-        	    error -> {
-        	    	//in case CustomerService is down, we want to store the proposal and retry later
-        	    	if (error instanceof WebClientException && error.getCause() instanceof ConnectException) {
-        	    		logger.error("createProposal - CustomerService is down. proposal will be stored and will be sent later. {0} ", error.getMessage());
-        	    		proposal.setStatus(ProposalStatus.PENDDING);
-        	    	} else {
-        	    		logger.error("createProposal - something went wrong in customer retrieving proposal rejected. {0}", error.getMessage());
-        	    		proposal.setStatus(ProposalStatus.REJECTED);
-        	    		proposal.setErrorMsg("Customer does not exist");
-        	    	}
-                	
-        	    }
-        );
-        if (ProposalStatus.REJECTED.equals(proposal.getStatus())) {
-        	return proposal;
-        } else if (ProposalStatus.PENDDING.equals(proposal.getStatus())) {
+    public Mono<Proposal> createProposal(Long customerId, Proposal proposal) {
+        String retrieveUrl = customerServerURL + customerId;
+        logger.info("createProposal - fetching customer id {0}.", customerId);
+        return webClient.get()
+                .uri(retrieveUrl)
+                .retrieve()
+                .bodyToMono(Customer.class)
+                .flatMap(customer -> {
+                    // Check if customer has exceeded the maximum number of proposals for the day
+                    if (customer.getProposalsPerDay() >= maxProposals) {
+                        logger.error("createProposal - customer {0} has already {1} proposals", customer.getName(), maxProposals);
+                        proposal.setStatus(ProposalStatus.REJECTED);
+                        proposal.setErrorMsg("Customer already made " + maxProposals + " proposals today");
+                        return Mono.just(proposal);
+                    } else if (customer.isBlocked()) {
+                        // Check if customer is blocked
+                        logger.error("createProposal - customer {0} is blocked", customer.getName());
+                        proposal.setStatus(ProposalStatus.REJECTED);
+                        proposal.setErrorMsg("Customer is blocked and not allowed to make proposals");
+                        return Mono.just(proposal);
+                    } else {
+                        //otherwise the proposal approved
+                        logger.info("createProposal - customer {0} is ok to make a proposal", customer.getName());
+                        String addUrl = customerServerURL + "/addProposal/" + customerId;
+                        return webClient.post()
+                                .uri(addUrl)
+                                .retrieve()
+                                .bodyToMono(String.class)
+                                .flatMap(response -> {
+                                    logger.info("createProposal - customer {0} made a proposal", customer.getName());
+                                    saveProposal(proposal);
+                                    return Mono.just(proposal);
+                                })
+                                .onErrorResume(error -> {
+                                    logger.error("createProposal - something went wrong proposal rejected. {0}", error.getMessage());
+                                    proposal.setStatus(ProposalStatus.REJECTED);
+                                    proposal.setErrorMsg("something went wrong proposal rejected");
+                                    return Mono.just(proposal);
+                                });
+                    }
+                })
+                .onErrorResume(error -> {
+                    //in case CustomerService is down, we want to store the proposal and retry later
+                    if (error instanceof WebClientException && error.getCause() instanceof ConnectException) {
+                        logger.error("createProposal - CustomerService is down. proposal will be stored and will be sent later. {0} ", error.getMessage());
+                        proposal.setStatus(ProposalStatus.PENDING);
+                        return Mono.just(proposal);
+                    } else {
+                        logger.error("createProposal - something went wrong in customer retrieving proposal rejected. {0}", error.getMessage());
+                        proposal.setStatus(ProposalStatus.REJECTED);
+                        proposal.setErrorMsg("Customer does not exist");
+                        return Mono.just(proposal);
+                    }
+                });
+    }
+    
+    private void saveProposal(Proposal proposal) {
+    	if (ProposalStatus.REJECTED.equals(proposal.getStatus())) {
+        	return;
+        } else if (ProposalStatus.PENDING.equals(proposal.getStatus())) {
         	proposalRepository.save(proposal);
         } else {
         	proposal.setStatus(ProposalStatus.APPROVED);
         }
-        
-        return proposalRepository.save(proposal);
+    	proposalRepository.save(proposal);
     }
 
     public Proposal getProposal(Long proposalId) {
@@ -165,7 +168,7 @@ public class ProposalService {
      */
     @Scheduled(fixedRate = 600000)
     public void resendPendingProposals() {
-    	List<Proposal> pendingProposals = proposalRepository.findByStatus(ProposalStatus.PENDDING);
+    	List<Proposal> pendingProposals = proposalRepository.findByStatus(ProposalStatus.PENDING);
     	pendingProposals.stream().forEach(proposal -> createProposal(proposal.getCustomerId(), proposal));
     }
     
@@ -174,7 +177,7 @@ public class ProposalService {
     */
     @Scheduled(cron = "0 0 0 * * *")
     public void deletePendingProposals() {
-    	List<Proposal> pendingProposals = proposalRepository.findByStatus(ProposalStatus.PENDDING);
+    	List<Proposal> pendingProposals = proposalRepository.findByStatus(ProposalStatus.PENDING);
     	pendingProposals.stream().forEach(proposal -> deleteProposal(proposal.getProposalId()));
     }
 }
