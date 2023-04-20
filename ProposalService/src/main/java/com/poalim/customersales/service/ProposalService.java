@@ -62,7 +62,7 @@ public class ProposalService {
     	            } else {
     	            	//otherwise the proposal approved
     	            	logger.info("createProposal - customer {0} is ok to make a proposal", customer.getName());
-    	                String addUrl = customerServerURL + customerId + "/addProposal";
+    	                String addUrl = customerServerURL + "/addProposal/" + customerId;
     	                webClient.post()
 							.uri(addUrl)
 							.retrieve()
@@ -74,7 +74,7 @@ public class ProposalService {
 									error -> {
 										logger.error("createProposal - something went wrong proposal rejected. {0}", error.getMessage());
 										proposal.setStatus(ProposalStatus.REJECTED);
-				    	            	proposal.setErrorMsg("Customer is blocked and not allowed to make proposals");
+				    	            	proposal.setErrorMsg("something went wrong proposal rejected");
 									}
 							);
     	                

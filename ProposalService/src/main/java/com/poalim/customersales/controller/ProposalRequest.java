@@ -5,7 +5,7 @@ public class ProposalRequest {
     private Long customerId;
     private String customerName;
     private Long campaignId;
-    private double amount;
+    private double ammount;
     
 	public Long getCustomerId() {
 		return customerId;
@@ -25,11 +25,11 @@ public class ProposalRequest {
 	public void setCampaignId(Long campaignId) {
 		this.campaignId = campaignId;
 	}
-	public double getAmount() {
-		return amount;
+	public double getAmmount() {
+		return ammount;
 	}
-	public void setAmount(double amount) {
-		this.amount = amount;
+	public void setAmmount(double amount) {
+		this.ammount = amount;
 	}
 
 	    

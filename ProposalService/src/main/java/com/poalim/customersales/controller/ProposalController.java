@@ -34,7 +34,7 @@ public class ProposalController {
         proposal.setCustomerId(proposalRequest.getCustomerId());
         proposal.setCustomerName(proposalRequest.getCustomerName());
         proposal.setCampaignId(proposalRequest.getCampaignId());
-        proposal.setAmmount(proposalRequest.getAmount());
+        proposal.setAmmount(proposalRequest.getAmmount());
 
         Proposal createdProposal = proposalService.createProposal(proposal.getCustomerId(), proposal);
         if (createdProposal.getStatus() == ProposalStatus.REJECTED) {
