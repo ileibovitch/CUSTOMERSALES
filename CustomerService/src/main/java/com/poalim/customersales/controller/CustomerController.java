@@ -55,11 +55,12 @@ public class CustomerController {
     @PostMapping("/addCustomer/{id}/{name}")
     public Customer addCustomer(@PathVariable Long id, @PathVariable String name) {
     	Customer customer = new Customer();
-    	customer.setcustomerId(id);
+    	customer.setCustomerId(id);
     	customer.setName(name);
     	customer.setBlocked(false);
     	customer.setProposalsPerDay(0);
-        return customerService.addCustomer(customer);
+    	customerService.addCustomer(customer);
+        return customer ;
     }
     
     @PostMapping("/{id}/addProposal")

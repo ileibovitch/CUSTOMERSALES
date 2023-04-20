@@ -1,7 +1,7 @@
 package com.poalim.customersales.service;
 
 import java.util.List;
-
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,27 +13,30 @@ import com.poalim.customersales.entities.Customer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Optional;
+
 
 @Service
 public class CustomerService{
 	
 	private final CustomerRepository customerRepository;
 	private static final Logger logger = LogManager.getLogger(CustomerService.class);
+	@Autowired 
+	Map<Long, Customer> customerMap;
+	
     @Autowired
     public CustomerService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
     }
     
     public Customer addCustomer(Customer customer) {
+    	customerMap.put(customer.getCustomerId(), customer);
     	return customerRepository.save(customer);
     }
     
     public Customer getCustomerById(Long customerId) {
-        Optional<Customer> optionalCustomer = customerRepository.findByCustomerId(customerId);
-        if (optionalCustomer.isPresent()) {
+        if (customerMap.containsKey(customerId)) {
         	logger.info("getCustomerById - Customer with id {} was found ", customerId);
-            return optionalCustomer.get();
+            return customerMap.get(customerId);
         }
         logger.error("getCustomerById - Customer with id {} was not found ", customerId);
         throw new RuntimeException("Customer not found");
@@ -49,10 +52,10 @@ public class CustomerService{
     
 	
 	public Customer blockCustomer(Long customerId) {
-		Optional<Customer> optionalCustomer = customerRepository.findByCustomerId(customerId);
-        if (optionalCustomer.isPresent()) {
-            Customer customer = optionalCustomer.get();
+        if (customerMap.containsKey(customerId)) {
+            Customer customer = customerMap.get(customerId);
             customer.setBlocked(true);
+            customerMap.put(customerId, customer);
             customerRepository.save(customer);
             logger.info("blockCustomer - Customer with id {} was blocked ", customerId);
             return customer;
@@ -63,10 +66,10 @@ public class CustomerService{
 
 	
 	public Customer unblockCustomer(Long customerId) {
-		Optional<Customer> optionalCustomer = customerRepository.findByCustomerId(customerId);
-        if (optionalCustomer.isPresent()) {
-            Customer customer = optionalCustomer.get();
+		if (customerMap.containsKey(customerId)) {
+            Customer customer = customerMap.get(customerId);
             customer.setBlocked(false);
+            customerMap.put(customerId, customer);
             customerRepository.save(customer);
             logger.info("blockCustomer - Customer with id {} was unblocked ", customerId);
             return customer;
@@ -76,14 +79,12 @@ public class CustomerService{
 	}
 	
 	public synchronized Customer addProposal(long customerId) {
-		Optional<Customer> optionalCustomer = customerRepository.findByCustomerId(customerId);
-        if (optionalCustomer.isPresent()) {
-            Customer customer = optionalCustomer.get();
-            int proposalsPerDay = customer.getProposalsPerDay();
-            proposalsPerDay++;
-            customer.setProposalsPerDay(proposalsPerDay);
+		if (customerMap.containsKey(customerId)) {
+            Customer customer = customerMap.get(customerId);
+            customer.setProposalsPerDay(customer.getProposalsPerDay() + 1);
+            customerMap.put(customerId, customer);
             customerRepository.save(customer);
-            logger.info("addProposal - proposal was added to customer {0}. number of proposals for today is {1} ", customerId, proposalsPerDay);
+            logger.info("addProposal - proposal was added to customer {0}. number of proposals for today is {1} ", customerId, customer.getProposalsPerDay());
             return customer;
         }
         logger.error("addProposal - Customer with id {} was not found ", customerId);
@@ -91,14 +92,12 @@ public class CustomerService{
 	}
 	
 	public synchronized Customer removeProposal(long customerId) {
-		Optional<Customer> optionalCustomer = customerRepository.findByCustomerId(customerId);
-        if (optionalCustomer.isPresent()) {
-            Customer customer = optionalCustomer.get();
-            int proposalsPerDay = customer.getProposalsPerDay();
-            proposalsPerDay--;
-            customer.setProposalsPerDay(proposalsPerDay);
+		if (customerMap.containsKey(customerId)) {
+            Customer customer = customerMap.get(customerId);
+            customer.setProposalsPerDay(customer.getProposalsPerDay() - 1);
+            customerMap.put(customerId, customer);
             customerRepository.save(customer);
-            logger.info("removeProposal - proposal was removed from customer {0}. number of proposals for today is {1} ", customerId, proposalsPerDay);
+            logger.info("removeProposal - proposal was removed from customer {0}. number of proposals for today is {1} ", customerId, customer.getProposalsPerDay());
             return customer;
         }
         logger.error("removeProposal - Customer with id {} was not found ", customerId);
@@ -117,8 +116,12 @@ public class CustomerService{
 	    */
 	@Scheduled(cron = "0 0 0 * * *")
 	public void setProposalsPerDayToZero() {
+		customerMap.clear();
 		List<Customer> customers = getAllCustomers();
-		customers.stream().forEach(customer -> customer.setProposalsPerDay(0));
+		customers.stream().forEach(customer -> {
+			customer.setProposalsPerDay(0);
+			customerMap.put(customer.getCustomerId(), customer);
+		});
 		customerRepository.saveAll(customers);
 	}
 
