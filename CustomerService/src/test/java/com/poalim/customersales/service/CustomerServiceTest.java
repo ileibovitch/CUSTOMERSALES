@@ -1,4 +1,4 @@
-package com.poalim.customersales.controller;
+package com.poalim.customersales.service;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 
@@ -14,7 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import com.poalim.customersales.entities.Customer;
 import com.poalim.customersales.repository.CustomerRepository;
-import com.poalim.customersales.service.CustomerService;
+
 
 @SpringBootTest
 public class CustomerServiceTest {
@@ -104,7 +104,7 @@ public class CustomerServiceTest {
     }
     
     @Test
-    public void testUnblockCustomerCustomerMapEmptyRuntimeExceptionThrown() {
+    public void testCustomeNotExist() {
         // Arrange
         Long customerId = 1234L;
         Mockito.when(customerMap.containsKey(customerId)).thenReturn(false); // Mocking customerMap to be empty

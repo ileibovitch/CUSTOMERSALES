@@ -22,7 +22,7 @@ import reactor.core.publisher.Mono;
 
 @Service
 public class ProposalService {
-	@Autowired
+//	@Autowired
 	private WebClient webClient;
 	
 	@Value("${customerserver.url}")
@@ -36,8 +36,9 @@ public class ProposalService {
 	private static final Logger logger = LogManager.getLogger(ProposalService.class);
 	
     @Autowired
-    public ProposalService(ProposalRepository proposalRepository) {
+    public ProposalService(ProposalRepository proposalRepository, WebClient webClient) {
         this.proposalRepository = proposalRepository;
+        this.webClient = webClient;
     }
 
     public Mono<Proposal> createProposal(Long customerId, Proposal proposal) {
