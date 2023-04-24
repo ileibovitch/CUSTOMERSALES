@@ -75,7 +75,7 @@ public class ProposalController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{proposalId}/purchase")
+    @PostMapping("/purchase/{proposalId}")
     public ResponseEntity<Void> purchaseProposal(@PathVariable Long proposalId) {
         proposalService.purchaseProposal(proposalId);
         return ResponseEntity.ok().build();
